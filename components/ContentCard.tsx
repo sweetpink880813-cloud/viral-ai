@@ -13,12 +13,14 @@ export default function ContentCard({
   const [script, setScript] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+const [saving, setSaving] = useState(false);
+const [saved, setSaved] = useState(false);
   async function handleCreateScript() {
     try {
       setLoading(true);
       setError("");
       setScript("");
+      setSaved(false);
 
       const response = await fetch("/api/script", {
         method: "POST",
@@ -52,7 +54,44 @@ export default function ContentCard({
       setLoading(false);
     }
   }
+async function handleSaveScript() {
+  if (!script || saving) return;
 
+  try {
+    setSaving(true);
+    setError("");
+
+    const response = await fetch("/api/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: idea.title,
+        hook: idea.hook,
+        summary: idea.summary,
+        target: idea.target,
+        script,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "콘텐츠 저장에 실패했습니다.");
+    }
+
+    setSaved(true);
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "콘텐츠 저장에 실패했습니다."
+    );
+  } finally {
+    setSaving(false);
+  }
+}
   return (
     <article className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6">
       <div className="mb-4 flex items-center justify-between gap-4 text-sm">
@@ -99,32 +138,41 @@ export default function ContentCard({
       )}
 
       {script && (
-        <div className="mt-6 rounded-2xl border border-lime-900 bg-black p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-lime-300">
-                REELS SCRIPT
-              </p>
+  <div className="mt-6 rounded-2xl border border-lime-900 bg-black p-5">
+    <div className="mb-4 flex items-center justify-between">
+      <div>
+        <p className="text-xs font-bold text-lime-300">
+          REELS SCRIPT
+        </p>
 
-              <h4 className="mt-1 font-bold text-white">
-                🎬 30초 릴스 대본
-              </h4>
-            </div>
-          </div>
+        <h4 className="mt-1 font-bold text-white">
+          🎬 30초 릴스 대본
+        </h4>
+      </div>
+    </div>
 
-          <div className="whitespace-pre-wrap text-sm leading-7 text-neutral-300">
-            {script}
-          </div>
+    <div className="whitespace-pre-wrap text-sm leading-7 text-neutral-300">
+      {script}
+    </div>
 
-          <button
-            type="button"
-            onClick={() => navigator.clipboard.writeText(script)}
-            className="mt-5 rounded-xl border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition hover:border-neutral-500 hover:text-white"
-          >
-            📋 대본 복사
-          </button>
-        </div>
-      )}
+    <button
+      type="button"
+      onClick={() => navigator.clipboard.writeText(script)}
+      className="mt-5 rounded-xl border border-neutral-700 px-4 py-2 text-sm text-neutral-300 transition hover:border-neutral-500 hover:text-white"
+    >
+      📋 대본 복사
+    </button>
+
+    <button
+      type="button"
+      onClick={handleSaveScript}
+      disabled={saving || saved}
+      className="ml-2 mt-5 rounded-xl border border-lime-500/50 bg-lime-400 px-4 py-2 text-sm font-bold text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {saving ? "💾 저장 중..." : saved ? "✓ 저장 완료" : "💾 저장"}
+    </button>
+  </div>
+)}
     </article>
   );
 }

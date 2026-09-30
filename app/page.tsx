@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import ContentCard from "@/components/ContentCard";
 import { contentResponseSchema, type ContentIdea } from "@/types/content";
@@ -53,12 +54,19 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#0b0b0b] text-white">
       <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-16">
-        {/* Logo */}
-        <div className="mb-20">
-          <span className="text-xl font-black tracking-tight">
-            VIRAL AI
-          </span>
-        </div>
+        {/* Top navigation */}
+<div className="mb-20 flex items-center justify-between">
+  <span className="text-xl font-black tracking-tight">
+    VIRAL AI
+  </span>
+
+  <Link
+    href="/dashboard"
+    className="rounded-xl border border-neutral-800 px-4 py-2 text-sm font-bold text-neutral-300 transition hover:border-lime-300 hover:text-white"
+  >
+    저장한 콘텐츠 →
+  </Link>
+</div>
 
         {/* Hero */}
         <section className="flex flex-1 flex-col justify-center">
