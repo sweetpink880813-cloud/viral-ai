@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@google-cloud/bigquery": "^9.1.0",
     "@supabase/supabase-js": "^2.117.2",
     "next": "16.3.7",
     "openai": "^6.49.0",

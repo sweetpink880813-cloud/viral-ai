@@ -1,17 +1,98 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ContentCard from "@/components/ContentCard";
-import { contentResponseSchema, type ContentIdea } from "@/types/content";
+import {
+  contentResponseSchema,
+  type ContentIdea,
+  type ContentPlatform,
+  type ContentAccount,
+} from "@/types/content";
+
 
 export default function Home() {
   const [topic, setTopic] = useState("");
+  const [angle, setAngle] = useState("");
+  const [platform, setPlatform] = useState<ContentPlatform>("instagram");
+  const [account, setAccount] =
+  useState<ContentAccount>("draw_boni");
   const [ideas, setIdeas] = useState<ContentIdea[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [generatedTopic, setGeneratedTopic] = useState("");
   const pending = useRef(false);
+   
+  type TrendCategory =
+  | "trending"
+  | "money"
+  | "life"
+  | "work"
+  | "ai"
+  | "growth";
+
+const [trendCategory, setTrendCategory] =
+  useState<TrendCategory>("trending");
+
+const [recommendedTopics, setRecommendedTopics] =
+  useState<string[]>([]);
+
+const [trendsLoading, setTrendsLoading] = useState(false);
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+
+  const topicFromUrl = params.get("topic");
+  const angleFromUrl = params.get("angle");
+
+  if (!topicFromUrl) return;
+
+  setTopic(topicFromUrl);
+  setAngle(angleFromUrl ?? "");
+}, []);
+
+useEffect(() => {
+  const controller = new AbortController();
+
+  async function loadTopics() {
+    setTrendsLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/trends?account=${encodeURIComponent(
+          account
+        )}&category=${encodeURIComponent(trendCategory)}`,
+        {
+          signal: controller.signal,
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("추천 주제를 불러오지 못했습니다.");
+      }
+
+      const data = await response.json();
+
+      setRecommendedTopics(
+        Array.isArray(data.topics) ? data.topics : []
+      );
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+
+      setRecommendedTopics([]);
+    } finally {
+      if (!controller.signal.aborted) {
+        setTrendsLoading(false);
+      }
+    }
+  }
+
+  loadTopics();
+
+  return () => controller.abort();
+}, [account, trendCategory]);
 
   async function handleCreate() {
     if (pending.current) return;
@@ -28,7 +109,13 @@ export default function Home() {
       const response = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: value }),
+        body: JSON.stringify({
+  topic: value,
+  platform,
+  account,
+  angle,
+}),
+ 
         signal: AbortSignal.timeout(55_000),
       });
       const data = await response.json();
@@ -57,7 +144,7 @@ export default function Home() {
         {/* Top navigation */}
 <div className="mb-20 flex items-center justify-between">
   <span className="text-xl font-black tracking-tight">
-    VIRAL AI
+    USIA
   </span>
 
   <Link
@@ -70,9 +157,83 @@ export default function Home() {
 
         {/* Hero */}
         <section className="flex flex-1 flex-col justify-center">
-          <div className="mb-4 inline-flex w-fit rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300">
-            AI CONTENT STRATEGIST
-          </div>
+          
+  {/* Platform selector */}
+  <div className="mb-6 flex gap-2">
+    <button
+      type="button"
+      onClick={() => setPlatform("instagram")}
+      className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
+        platform === "instagram"
+          ? "border-lime-400 bg-lime-400 text-black"
+          : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white"
+      }`}
+    >
+      📸 Instagram Reels
+    </button>
+
+    <button
+      type="button"
+     onClick={() => {
+  setPlatform("threads");
+  setAccount("draw_boni");
+}}
+      className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
+        platform === "threads"
+          ? "border-lime-400 bg-lime-400 text-black"
+          : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white"
+      }`}
+    >
+      @ Threads
+    </button>
+  </div>
+  {platform === "instagram" ? (
+  <div className="mb-6 flex flex-wrap gap-2">
+    <button
+      type="button"
+      onClick={() => setAccount("draw_boni")}
+      className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
+        account === "draw_boni"
+          ? "border-lime-400 bg-lime-400 text-black"
+          : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white"
+      }`}
+    >
+      🎨 draw_boni
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setAccount("moni_moneylog")}
+      className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
+        account === "moni_moneylog"
+          ? "border-lime-400 bg-lime-400 text-black"
+          : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white"
+      }`}
+    >
+      💰 moni.moneylog
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setAccount("ttoni_on")}
+      className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
+        account === "ttoni_on"
+          ? "border-lime-400 bg-lime-400 text-black"
+          : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white"
+      }`}
+    >
+      👩 ttoni.on
+    </button>
+  </div>
+) : (
+  <div className="mb-6 text-sm text-neutral-500">
+    @ draw_boni · 눈치녀의 현실 번역
+  </div>
+)}
+
+<div className="mb-4 inline-flex w-fit rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300">
+  AI CONTENT STRATEGIST
+</div>
 
           <h1 className="mb-6 text-5xl font-black leading-tight tracking-tight md:text-7xl">
             오늘 뭐
@@ -115,21 +276,59 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Suggestions */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            {["AI 활용법", "직장인 자기계발", "사업", "재테크"].map(
-              (item) => (
-                <button
-                  key={item}
-                  disabled={loading}
-                  onClick={() => setTopic(item)}
-                  className="rounded-full border border-neutral-800 px-4 py-2 text-sm text-neutral-400 transition hover:border-neutral-600 hover:text-white"
-                >
-                  {item}
-                </button>
-              )
-            )}
-          </div>
+         {/* Topic explorer */}
+<div className="mt-6">
+  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-lime-400">
+    관심 분야
+  </p>
+
+  <div className="flex flex-wrap gap-2">
+    {[
+      ["trending", "🔥 오늘 뜨는 주제"],
+      ["money", "💰 돈/재테크"],
+      ["life", "🏠 생활/육아"],
+      ["work", "💼 일/부업"],
+      ["ai", "🤖 AI"],
+      ["growth", "✨ 자기계발"],
+    ].map(([value, label]) => (
+      <button
+        key={value}
+        type="button"
+        disabled={loading}
+        onClick={() => setTrendCategory(value as TrendCategory)}
+        className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
+          trendCategory === value
+            ? "border-lime-400 bg-lime-400 text-black"
+            : "border-neutral-800 bg-transparent text-neutral-400 hover:text-white"
+        }`}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+
+  <div className="mt-4">
+    <p className="mb-3 text-xs text-neutral-500">
+      {trendsLoading
+        ? "추천 주제를 불러오는 중..."
+        : "이 계정에 맞는 추천 주제"}
+    </p>
+
+    <div className="flex flex-wrap gap-2">
+      {recommendedTopics.map((item) => (
+        <button
+          key={item}
+          type="button"
+          disabled={loading || trendsLoading}
+          onClick={() => setTopic(item)}
+          className="rounded-full border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition hover:border-lime-400 hover:text-lime-400"
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
           {error && <p id="topic-error" role="alert" className="mt-4 text-sm text-red-300">{error}</p>}
           <div aria-live="polite" aria-busy={loading}>
             {loading && <p role="status" className="mt-8 animate-pulse text-neutral-400">서로 다른 콘텐츠 아이디어 3개를 기획하고 있어요.</p>}

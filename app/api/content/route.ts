@@ -22,7 +22,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "콘텐츠 주제를 1~200자로 입력해주세요." }, { status: 400 });
   }
   try {
-    const data = await generateContent(parsed.data.topic);
+  const data = await generateContent(
+  parsed.data.topic,
+  parsed.data.platform,
+  parsed.data.account,
+  parsed.data.angle
+);
     return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof ContentGenerationError) {

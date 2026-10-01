@@ -1,7 +1,11 @@
 import "server-only";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
-import { contentResponseSchema } from "@/types/content";
+import {
+  contentResponseSchema,
+  type ContentPlatform,
+  type ContentAccount,
+} from "@/types/content";
 
 export class ContentGenerationError extends Error {
   constructor(message: string, public status: number) {
@@ -9,21 +13,124 @@ export class ContentGenerationError extends Error {
   }
 }
 
-export async function generateContent(topic: string) {
+export async function generateContent(
+  topic: string,
+  platform: ContentPlatform,
+  account: ContentAccount,
+  angle?: string
+) {
   if (!process.env.OPENAI_API_KEY) {
     throw new ContentGenerationError("AI 연결 설정이 필요합니다.", 503);
   }
+
   const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
     timeout: 45_000,
     maxRetries: 0,
   });
+    const platformInstructions =
+  platform === "instagram"
+    ? [
+        "현재 플랫폼은 Instagram Reels입니다.",
+        "모든 아이디어는 세로형 숏폼 영상으로 실제 촬영 가능한 방향으로 기획합니다.",
+        "첫 1~3초 안에 스크롤을 멈추게 할 시각적 또는 언어적 훅을 만듭니다.",
+        "format에는 촬영 방식, 화면 구성, 전개 방식을 구체적으로 적습니다.",
+        "summary에는 릴스에서 실제로 전달할 핵심 내용과 실행 가능한 정보를 적습니다.",
+        "저장하거나 공유하고 싶은 실용적 가치가 분명한 아이디어를 우선합니다.",
+      ].join("\n")
+    : [
+        "현재 플랫폼은 Threads입니다.",
+        "모든 아이디어는 영상이 아니라 Threads에 게시할 텍스트 콘텐츠로 기획합니다.",
+        "첫 문장은 피드에서 읽기를 멈추게 하는 짧고 강한 문장으로 만듭니다.",
+        "hook은 Threads 게시물의 실제 첫 문장처럼 작성합니다.",
+        "summary에는 게시물 본문에서 전개할 핵심 주장, 사례, 정보 또는 관점을 구체적으로 적습니다.",
+        "format에는 짧은 단문형, 경험담형, 체크리스트형, 의견형, 스토리형처럼 글의 전개 형식을 적습니다.",
+        "공감, 유용성, 의견 교환과 답글을 유도할 수 있는 아이디어를 우선합니다.",
+        "영상 촬영, 화면 전환, 자막, 장면 같은 Reels 전용 표현은 사용하지 않습니다.",
+      ].join("\n");
+
+const accountInstructions =
+  account === "draw_boni"
+    ? [
+    "현재 계정은 draw_boni입니다.",
+    "이 계정은 육아 정보를 가르치는 계정이 아니라, 아이와 부모의 일상에서 실제로 벌어질 법한 웃기고 공감되는 순간을 짧은 이야기로 보여주는 육아·가족 공감 계정입니다.",
+    "핵심 독자는 어린아이를 키우며 아이의 엉뚱한 말과 행동, 부모의 당황스러운 순간에 '우리 집도 똑같아'라고 느끼는 부모입니다.",
+    "콘텐츠의 중심은 정보가 아니라 상황, 감정, 대화, 반전입니다.",
+    "아이의 순수한 논리, 엉뚱한 질문, 예상 밖의 대답과 부모의 속마음이 충돌하는 순간을 적극적으로 찾습니다.",
+    "부모가 완벽하게 대처하는 이야기보다 당황하고 참다가 웃고, 예상 밖의 결말을 맞는 현실적인 모습을 우선합니다.",
+    "육아 팁이나 교훈을 먼저 정해놓고 이야기를 끼워 맞추지 않습니다.",
+    "억지 감동, 과장된 육아 갈등, 아이를 망신시키거나 조롱하는 소재는 만들지 않습니다.",
+    "아이의 실제 개인정보, 실제 발언, 실제 경험을 사용자가 제공하지 않았다면 있었던 일처럼 만들어내지 않습니다.",
+    "사용자가 구체적인 경험을 제공하지 않은 경우 실제 경험담이라고 주장하지 말고, '이런 상황을 소재로 구성할 수 있다'는 창작 가능한 장면으로 기획합니다.",
+    "릴스는 설명형 강의보다 짧은 상황극, 부모와 아이의 대화, 속마음 자막, 예상 밖의 반전처럼 눈앞에 장면이 그려지는 아이디어를 우선합니다.",
+    "첫 장면부터 누가 무엇을 하고 있는지 바로 이해할 수 있도록 구체적인 행동이나 대사로 시작합니다.",
+    "후킹은 자극적인 공포나 갈등보다 '우리 애도 저러는데', '엄마들 이거 알지?'처럼 부모가 자신의 경험을 떠올리게 만드는 공감을 우선합니다.",
+    "같은 육아 소재라도 ttoni.on처럼 생활비·육아비·엄마의 경제력 문제를 중심으로 풀지 말고, 가족 관계와 아이의 말·행동에서 생기는 이야기성을 중심에 둡니다.",
+    "정보가 필요한 주제라면 정보만 나열하지 말고 부모와 아이가 실제로 겪을 법한 하나의 장면 속에 자연스럽게 녹입니다.",
+    "결과를 본 사람이 '우리 집 얘기인 줄', '남편한테 보내줘야겠다', '이거 친구한테 보여줘야겠다'고 느낄 만큼 공유하고 싶은 공감형 콘텐츠를 우선합니다.",
+  ].join("\n")
+    : account === "moni_moneylog"
+      ? [
+    "현재 계정은 moni.moneylog입니다.",
+    "이 계정은 돈을 가르치는 금융 전문가가 아니라, 돈 공부를 시작한 2030이 직접 배우고 실행하고 기록하는 현실 돈생활 계정입니다.",
+    "핵심 독자는 돈을 모으고 싶지만 소비도 포기하고 싶지 않은 20~30대 직장인과 사회초년생입니다.",
+    "핵심 주제는 생활비, 소비 습관, 고정지출, 절약, 저축, 돈 공부, 청년혜택, 뷰티·다이어트 비용처럼 일상과 돈이 만나는 순간입니다.",
+    "무조건 안 쓰는 절약보다 같은 돈을 쓰더라도 더 잘 선택하고, 불필요한 지출을 발견하고, 덜 후회하는 방법을 우선합니다.",
+    "콘텐츠는 '전문가가 정답을 알려준다'보다 '나도 돈 공부하면서 직접 찾아보고 해봤다'는 시선을 유지합니다.",
+    "시청자가 자신의 카드값, 구독, 배달, 쇼핑, 고정지출을 바로 떠올릴 수 있는 구체적인 생활 장면에서 시작합니다.",
+    "예쁜 것, 맛있는 것, 자기관리도 포기하지 않으면서 돈을 관리하고 싶은 현실적인 갈등을 콘텐츠 소재로 활용합니다.",
+    "막연한 재테크 조언보다 오늘 바로 확인하거나 실행할 수 있는 행동, 체크리스트, 비교, 선택 기준을 우선합니다.",
+    "투자 수익, 절약 금액, 지원금, 금리, 통계 등 사용자가 제공하지 않았거나 확인되지 않은 수치는 만들어내지 않습니다.",
+    "정부지원, 청년정책, 세금, 금융상품, 금리처럼 최신 확인이 필요한 정보는 구체적인 혜택·금액·자격조건을 사실처럼 만들어내지 않습니다.",
+    "최신 확인이 필요한 주제는 '받을 수 있다'고 단정하지 말고, 공식 정보에서 확인할 조건·찾아볼 항목·확인 방법 중심으로 기획합니다.",
+    "공포심이나 죄책감으로 소비를 비난하지 않고, '나도 이랬는데 확인해보니 여기서 새고 있었다'처럼 공감과 발견을 우선합니다.",
+    "세 아이 육아·가족 에피소드 중심의 ttoni.on이나 육아 공감 스토리 중심의 draw_boni와 겹치지 않도록, 2030 개인의 돈생활과 선택을 중심에 둡니다.",
+    "결과를 본 사람이 '이건 저장해두고 월급날 확인해야겠다', '오늘 내 소비부터 한번 봐야겠다'고 느끼는 콘텐츠를 우선합니다.",
+  ].join("\n")
+      : [
+    "현재 계정은 ttoni.on입니다.",
+    "이 계정은 세 아이를 키우는 엄마가 육아와 돈 문제를 동시에 겪으며 직접 아끼고 벌고 배워가는 현실 생활 계정입니다.",
+    "핵심 독자는 아이를 키우면서 생활비, 장보기, 교육비, 육아비, 부수입과 자신의 경제력을 함께 고민하는 부모입니다.",
+    "전문가가 정답을 가르치는 계정이 아니라 '우리 집에서는 실제로 이렇게 고민하고 해봤다'는 엄마의 시선을 유지합니다.",
+    "콘텐츠는 세 아이가 있는 집에서 실제로 벌어질 법한 장보기, 식비, 육아용품, 교육, 외출, 고정지출, 집안일 같은 구체적인 생활 장면에서 시작합니다.",
+    "같은 돈 문제라도 2030 개인 소비 중심의 moni.moneylog와 달리 가족 단위의 선택, 아이들에게 들어가는 비용, 엄마의 현실적인 고민을 중심에 둡니다.",
+    "육아 정보만 전달하기보다 '아이 셋 키우다 보니 이건 그냥 지나칠 수 없었다'처럼 엄마의 경험과 선택이 드러나는 각도를 우선합니다.",
+    "무조건 아끼는 절약보다 아이에게 필요한 것은 지키면서 줄일 수 있는 지출을 찾고, 가족에게 맞는 현실적인 선택을 보여줍니다.",
+    "생활비뿐 아니라 엄마가 다시 경제력을 만들기 위해 공부하고 시도하고 부수입을 고민하는 과정도 중요한 콘텐츠 축으로 다룹니다.",
+    "완벽한 절약 전문가나 성공한 재테크 전문가처럼 말하지 않고, 직접 알아보고 시행착오를 겪으며 배우는 사람의 목소리를 유지합니다.",
+    "죄책감, 육아 불안, 경제적 공포를 과도하게 자극하지 않습니다.",
+    "아이의 건강, 발달, 교육 효과처럼 전문적 근거가 필요한 내용을 확인 없이 단정하지 않습니다.",
+    "사용자가 제공하지 않은 육아비, 교육비, 생활비, 절약액, 수익, 통계 등의 숫자를 만들어내지 않습니다.",
+    "정부지원, 육아지원, 교육지원, 세금, 복지제도처럼 최신 확인이 필요한 내용은 혜택·금액·자격조건을 사실처럼 만들어내지 않습니다.",
+    "최신 확인이 필요한 제도는 받을 수 있다고 단정하지 말고, 부모가 공식 정보에서 확인할 조건과 항목을 중심으로 기획합니다.",
+    "릴스에서는 설명만 이어가기보다 엄마와 아이의 행동, 장보기 순간, 가족 대화, 선택 전후처럼 실제 촬영하거나 장면화할 수 있는 아이디어를 우선합니다.",
+    "결과를 본 부모가 '우리 집도 똑같은데', '이건 오늘 한번 해봐야겠다', '나도 내 경제력을 다시 만들어보고 싶다'고 느끼는 콘텐츠를 우선합니다.",
+  ].join("\n");
   try {
     const response = await client.responses.parse({
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       store: false,
       max_output_tokens: 1800,
-      instructions: [
+     instructions: [
+  platformInstructions,
+  accountInstructions,
+  angle
+  ? [
+      "",
+      "이번 요청에는 실시간 트렌드 분석을 통해 선정된 추천 콘텐츠 관점이 있습니다.",
+      `추천 관점: ${angle}`,
+      "이 관점을 그대로 제목처럼 반복하지 말고, 계정 DNA와 결합해 콘텐츠의 핵심 전개로 사용하세요.",
+      "주제 자체보다 왜 이 계정의 시청자가 지금 멈춰 보고, 저장하고, 공유하거나 댓글을 남길지를 우선해서 설계하세요.",
+      "추천 관점과 계정 DNA가 충돌하면 계정 DNA를 우선하되, 트렌드의 관심 포인트는 자연스럽게 활용하세요.",
+    ].join("\n")
+  : "",
+ "중요: 사용자가 직접 제공하지 않은 금액, 비율, 퍼센트, 기간별 절약액, 수익률, 통계, 성과 수치를 절대 만들어내지 마세요.",
+"제목, hook, summary, format, target 어느 필드에서도 근거 없는 숫자를 사용하지 마세요.",
+"예: '30% 절약', '월 20만원 절약', '전기세 50% 감소', '매주 5만원 절약'처럼 검증되지 않은 수치는 금지합니다.",
+"숫자 근거가 없는 경우 '식비 줄이는 방법', '전기세 아끼는 습관', '교통비 절약 체크리스트'처럼 사실을 과장하지 않는 표현으로 바꾸세요.",
+"사용자가 입력한 숫자는 사용할 수 있지만, 그 숫자의 효과나 성과를 새로 만들어내지 마세요.",
+"사용자가 제공하지 않은 원화 금액도 임의로 예시하지 마세요. '7000원 점심', '월 10만원', '하루 5000원'처럼 일반적인 예시처럼 보이는 금액도 금지하며, 대신 '매일 사 먹는 점심', '고정지출', '습관적인 소액 지출'처럼 표현하세요.",
+
   "당신은 한국어 숏폼 콘텐츠 전문 전략가입니다.",
   "목표는 자극적인 낚시가 아니라, 시청자가 멈춰 보고 저장하거나 공유할 만큼 구체적이고 유용한 콘텐츠 아이디어를 만드는 것입니다.",
 
@@ -76,7 +183,11 @@ export async function generateContent(topic: string) {
   "조회수나 성과를 보장하지 마세요.",
   "출력은 반드시 지정된 구조화 형식을 따르고 정확히 3개의 아이디어를 반환하세요.",
 ].join("\n"),
-      input: JSON.stringify({ topic }),
+      input: JSON.stringify({
+  topic,
+  platform,
+  account,
+}),
       text: { format: zodTextFormat(contentResponseSchema, "content_ideas") },
     });
     if (response.status !== "completed" || !response.output_parsed) {
@@ -100,5 +211,124 @@ export async function generateContent(topic: string) {
       throw new ContentGenerationError("생성 시간이 초과되었습니다. 다시 시도해주세요.", 504);
     }
     throw new ContentGenerationError("AI 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해주세요.", 502);
+  }
+}
+ export type TrendRouteResult = {
+  relevant: boolean;
+  fitScore: number;
+  angle: string;
+  reason: string;
+};
+
+export async function routeTrendForAccount(
+  keyword: string,
+  account: ContentAccount
+): Promise<TrendRouteResult> {
+ if (!process.env.OPENAI_API_KEY) {
+  return {
+    relevant: false,
+    fitScore: 0,
+    angle: "",
+    reason: "",
+  };
+}
+
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    timeout: 20_000,
+    maxRetries: 0,
+  });
+
+  const accountDNA =
+    account === "draw_boni"
+      ? `
+계정: draw_boni
+정체성: 아이와 부모의 현실적인 일상과 육아 공감
+핵심: 아이의 엉뚱한 행동, 부모의 당황, 가족 대화, 현실 육아
+피해야 할 것: 억지 감동, 과장된 육아 갈등, 일반적인 육아 정보
+`
+      : account === "moni_moneylog"
+      ? `
+계정: moni.moneylog
+정체성: 돈 공부를 시작한 2030의 현실 돈생활
+핵심: 소비, 생활비, 직장, 청년혜택, 주거, 부업, AI와 돈의 접점
+관점: 금융 전문가가 아니라 직접 알아보고 실행하는 사람
+피해야 할 것: 투자수익 단정, 확인되지 않은 금액·지원금·정책 정보
+`
+      : `
+계정: ttoni.on
+정체성: 세 아이를 키우는 엄마의 현실 육아와 가계 살림
+핵심: 장보기, 식비, 교육비, 육아용품, 생활비, 절약, 엄마의 경제력
+관점: 직접 아끼고 벌고 배우는 엄마
+피해야 할 것: 공포 조장, 죄책감 유발, 확인되지 않은 절약 성과
+`;
+
+  try {
+    const response = await client.responses.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      store: false,
+      max_output_tokens: 220,
+
+      instructions: `
+당신은 한국 SNS 콘텐츠의 트렌드 라우터입니다.
+
+현재 급상승 키워드가 특정 계정에서
+억지스럽지 않게 콘텐츠가 될 수 있는지만 판단합니다.
+
+중요 규칙:
+- 단순히 키워드가 계정 주제와 비슷하다는 이유만으로 relevant=true로 만들지 마세요.
+- 실제 시청자가 저장, 공유, 댓글을 할 만한 자연스러운 연결점이 있어야 합니다.
+- 연예인, 스포츠, 사건사고 등 계정과 무관한 화제는 버립니다.
+- 최신 사실을 알 수 없으면 구체적인 사실·금액·정책 내용을 만들어내지 마세요.
+- keyword 자체가 무엇을 의미하는지 불확실하면 relevant=false로 판단하세요.
+- angle은 해당 계정에서 사용할 수 있는 콘텐츠 관점 한 문장입니다.
+- fitScore는 이 키워드를 해당 계정의 실제 콘텐츠로 만들었을 때의 적합도를 0~100 정수로 평가합니다.
+
+반드시 JSON만 반환하세요.
+
+형식:
+{
+  "relevant": true,
+  "fitScore": 85,
+  "angle": "콘텐츠 관점",
+  "reason": "판단 이유"
+}
+`,
+
+      input: `
+급상승 키워드:
+${keyword}
+
+계정 DNA:
+${accountDNA}
+`,
+    });
+
+    const text = response.output_text.trim();
+
+const cleanedText = text
+  .replace(/^```(?:json)?\s*/i, "")
+  .replace(/\s*```$/i, "")
+  .trim();
+
+const parsed = JSON.parse(cleanedText) as TrendRouteResult;
+   return {
+  relevant: parsed.relevant === true,
+  fitScore:
+    typeof parsed.fitScore === "number"
+      ? Math.max(0, Math.min(100, Math.round(parsed.fitScore)))
+      : 0,
+  angle: typeof parsed.angle === "string" ? parsed.angle : "",
+  reason: typeof parsed.reason === "string" ? parsed.reason : "",
+};
+  } catch (error) {
+    console.error("Trend routing failed:", error);
+
+    return {
+  relevant: false,
+  fitScore: 0,
+  angle: "",
+  reason: "",
+};
   }
 }
