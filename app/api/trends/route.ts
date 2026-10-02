@@ -266,6 +266,7 @@ console.log(
   keyword: item.keyword,
   rank: item.rank,
   fitScore: item.fitScore,
+  opportunityScore: item.opportunityScore,
   viralScore: item.viralScore,
   angle: item.angle,
   reason: item.reason,
