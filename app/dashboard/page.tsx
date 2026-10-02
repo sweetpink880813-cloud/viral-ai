@@ -27,6 +27,7 @@ export default async function DashboardPage() {
   keyword: string;
   rank?: number;
   fitScore: number;
+  opportunityScore: number;
   viralScore: number;
   angle: string;
   reason: string;
@@ -131,6 +132,16 @@ if (trendResponse.ok) {
               </p>
             </div>
           </div>
+
+          <div className="mb-4">
+  <span className="inline-flex rounded-full border border-neutral-700 px-3 py-1 text-xs font-bold">
+    {trend.opportunityScore >= 60
+      ? "🔥 지금 잡기"
+      : trend.opportunityScore >= 50
+        ? "👀 활용 가능"
+        : "⚠️ 기회 낮음"}
+  </span>
+</div>
 
           <div className="mb-5 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-neutral-950 p-3">
