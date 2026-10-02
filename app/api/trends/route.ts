@@ -198,7 +198,8 @@ console.log("[USIA TREND] candidates:", candidates);
   );
 
  const scoredTrends = routed
-  .filter((item) => item.relevant)
+     .filter((item) => item.relevant || item.source === "fallback")
+
   .map((item) => {
     // Google Trends 순위: 1위=100점, 25위=4점
     const rankScore = Math.max(
@@ -208,7 +209,6 @@ console.log("[USIA TREND] candidates:", candidates);
 
     // 계정 적합도
     const fitScore = item.fitScore ?? 0;
-
     // 네이버 검색 관심도
     const naverScore = item.naverRatio ?? 0;
 
