@@ -107,7 +107,7 @@ export async function getLatestTrends(): Promise<TrendItem[]> {
   try {
     const sourceItems = await fetchTrendSource();
 
-    return uniqueKeywords(
+    const liveItems = uniqueKeywords(
       sourceItems
         .map((item) => cleanKeyword(item.keyword))
         .filter(Boolean)
@@ -117,10 +117,30 @@ export async function getLatestTrends(): Promise<TrendItem[]> {
           fetchedAt: new Date().toISOString(),
         }))
     ).slice(0, 50);
+
+    if (liveItems.length > 0) {
+      return liveItems;
+    }
   } catch (error) {
     console.error("Trend fetch failed:", error);
-    return [];
   }
+
+  // BigQuery를 사용할 수 없을 때 계정 관심 키워드를 후보군으로 사용
+  const fetchedAt = new Date().toISOString();
+
+  const fallbackKeywords = Array.from(
+    new Set(Object.values(accountSignals).flat())
+  );
+
+  console.warn(
+    `[USIA TREND] using account-signal fallback: ${fallbackKeywords.length} keywords`
+  );
+
+  return fallbackKeywords.slice(0, 50).map((keyword) => ({
+    keyword: cleanKeyword(keyword),
+    source: "fallback" as const,
+    fetchedAt,
+  }));
 }
 export async function getNaverSearchTrend(
   keyword: string
