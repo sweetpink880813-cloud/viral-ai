@@ -219,10 +219,13 @@ console.log("[USIA TREND] candidates:", candidates);
     // 최종 바이럴 점수
 // 계정 적합도를 가장 중요하게 보고,
 // 실시간 순위와 검색 관심도를 보조 신호로 사용
+const opportunityScore = item.opportunityScore ?? 0;
+
 const viralScore = Math.round(
-  fitScore * 0.50 +
-  rankScore * 0.35 +
-  naverScore * 0.15
+  opportunityScore * 0.35 +
+  fitScore * 0.30 +
+  rankScore * 0.25 +
+  naverScore * 0.10
 );
 
     return {

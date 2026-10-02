@@ -216,6 +216,7 @@ const accountInstructions =
  export type TrendRouteResult = {
   relevant: boolean;
   fitScore: number;
+  opportunityScore: number;
   angle: string;
   reason: string;
 };
@@ -226,11 +227,12 @@ export async function routeTrendForAccount(
 ): Promise<TrendRouteResult> {
  if (!process.env.OPENAI_API_KEY) {
   return {
-    relevant: false,
-    fitScore: 0,
-    angle: "",
-    reason: "",
-  };
+  relevant: false,
+  fitScore: 0,
+  opportunityScore: 0,
+  angle: "",
+  reason: "",
+};
 }
 
   const client = new OpenAI({
@@ -283,6 +285,7 @@ export async function routeTrendForAccount(
 - keyword 자체가 무엇을 의미하는지 불확실하면 relevant=false로 판단하세요.
 - angle은 해당 계정에서 사용할 수 있는 콘텐츠 관점 한 문장입니다.
 - fitScore는 이 키워드를 해당 계정의 실제 콘텐츠로 만들었을 때의 적합도를 0~100 정수로 평가합니다.
+- opportunityScore는 이 키워드가 단순히 계정과 관련 있는지가 아니라, 바로 지금 이 급상승 화제를 콘텐츠로 만들 가치가 얼마나 큰지를 0~100 점수로 평가합니다.
 
 반드시 JSON만 반환하세요.
 
@@ -290,6 +293,7 @@ export async function routeTrendForAccount(
 {
   "relevant": true,
   "fitScore": 85,
+  "opportunityScore": 80,
   "angle": "콘텐츠 관점",
   "reason": "판단 이유"
 }
@@ -318,6 +322,10 @@ const parsed = JSON.parse(cleanedText) as TrendRouteResult;
     typeof parsed.fitScore === "number"
       ? Math.max(0, Math.min(100, Math.round(parsed.fitScore)))
       : 0,
+      opportunityScore:
+  typeof parsed.opportunityScore === "number"
+    ? Math.max(0, Math.min(100, Math.round(parsed.opportunityScore)))
+    : 0,
   angle: typeof parsed.angle === "string" ? parsed.angle : "",
   reason: typeof parsed.reason === "string" ? parsed.reason : "",
 };
@@ -327,6 +335,7 @@ const parsed = JSON.parse(cleanedText) as TrendRouteResult;
     return {
   relevant: false,
   fitScore: 0,
+  opportunityScore: 0,
   angle: "",
   reason: "",
 };
