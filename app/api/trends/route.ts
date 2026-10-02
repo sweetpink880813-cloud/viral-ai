@@ -198,7 +198,11 @@ console.log("[USIA TREND] candidates:", candidates);
   );
 
  const scoredTrends = routed
-     .filter((item) => item.relevant || item.source === "fallback")
+     .filter(
+  (item) =>
+    item.source === "fallback" ||
+    (item.relevant && (item.fitScore ?? 0) >= 70)
+)
 
   .map((item) => {
     // Google Trends 순위: 1위=100점, 25위=4점
@@ -213,11 +217,13 @@ console.log("[USIA TREND] candidates:", candidates);
     const naverScore = item.naverRatio ?? 0;
 
     // 최종 바이럴 점수
-    const viralScore = Math.round(
-      rankScore * 0.35 +
-      fitScore * 0.40 +
-      naverScore * 0.25
-    );
+// 계정 적합도를 가장 중요하게 보고,
+// 실시간 순위와 검색 관심도를 보조 신호로 사용
+const viralScore = Math.round(
+  fitScore * 0.50 +
+  rankScore * 0.35 +
+  naverScore * 0.15
+);
 
     return {
       ...item,
