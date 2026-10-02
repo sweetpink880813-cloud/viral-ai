@@ -36,21 +36,27 @@ export default async function DashboardPage() {
 let trendDetails: TrendDetail[] = [];
 
 try {
-  const baseUrl =
-  process.env.NEXT_PUBLIC_APP_URL ??
-  (process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://127.0.0.1:3000");
+  
+const trendResponse = await fetch(
+  "https://viral-ai-delta.vercel.app/api/trends?account=draw_boni&category=trending",
+  { cache: "no-store" }
+);
 
-  const trendResponse = await fetch(
-    `${baseUrl}/api/trends?account=draw_boni&category=trending`,
-    { cache: "no-store" }
-  );
+if (trendResponse.ok) {
+  const contentType = trendResponse.headers.get("content-type") ?? "";
 
-  if (trendResponse.ok) {
+  if (contentType.includes("application/json")) {
     const trendData = await trendResponse.json();
     trendDetails = trendData.trendDetails ?? [];
+  } else {
+    console.error(
+      "Dashboard trend fetch returned non-JSON:",
+      trendResponse.status,
+      contentType
+    );
   }
+}
+    
 } catch (error) {
   console.error("Dashboard trend fetch failed:", error);
 }
