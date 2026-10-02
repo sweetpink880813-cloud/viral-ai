@@ -82,6 +82,8 @@ export async function fetchTrendSource(): Promise<TrendSourceItem[]> {
       location: "US",
       useLegacySql: false,
     });
+    
+    console.log("[USIA TREND] BigQuery raw rows:", rows.slice(0, 10));
 
     const fetchedAt = new Date().toISOString();
 
