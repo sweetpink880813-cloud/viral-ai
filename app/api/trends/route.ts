@@ -174,7 +174,7 @@ console.log("[USIA TREND] latestTrends:", latestTrends);
 
  // 실시간 후보는 키워드 일치로 미리 버리지 않고
 // AI가 계정과 연결 가능한지 판단하도록 넘긴다.
-const candidates = latestTrends.slice(0, 24);
+const candidates = latestTrends.slice(0, 12);
 
 console.log("[USIA TREND] candidates:", candidates);
   if (candidates.length > 0) {
