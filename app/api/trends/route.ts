@@ -221,11 +221,15 @@ console.log("[USIA TREND] candidates:", candidates);
 // 실시간 순위와 검색 관심도를 보조 신호로 사용
 const opportunityScore = Math.min(item.opportunityScore ?? 0, item.rank === 25 ? 50 : 100);
 
+const opportunityPenalty =
+  opportunityScore < 50 ? 10 : 0;
+
 const viralScore = Math.round(
   opportunityScore * 0.35 +
   fitScore * 0.30 +
   rankScore * 0.25 +
-  naverScore * 0.10
+  naverScore * 0.10 -
+  opportunityPenalty
 );
 
     return {
