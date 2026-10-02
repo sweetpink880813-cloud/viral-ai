@@ -229,10 +229,11 @@ const viralScore = Math.round(
 );
 
     return {
-      ...item,
-      rankScore,
-      viralScore,
-    };
+  ...item,
+  rankScore,
+  opportunityScore,
+  viralScore,
+};
   });
 
 const relevantTrends = scoredTrends
