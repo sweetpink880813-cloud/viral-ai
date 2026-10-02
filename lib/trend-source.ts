@@ -13,20 +13,19 @@ type BigQueryTrendRow = {
   rank: number;
 };
 
-const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-
-const credentials = serviceAccountJson
-  ? JSON.parse(serviceAccountJson)
-  : undefined;
+const projectId = process.env.GOOGLE_PROJECT_ID ?? "usia-510306";
+const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
 const bigquery = new BigQuery({
-  projectId: credentials?.project_id ?? "usia-510306",
-  credentials: credentials
-    ? {
-        client_email: credentials.client_email,
-        private_key: credentials.private_key,
-      }
-    : undefined,
+  projectId,
+  credentials:
+    clientEmail && privateKey
+      ? {
+          client_email: clientEmail,
+          private_key: privateKey,
+        }
+      : undefined,
 });
 
 // 캐시는 반드시 함수 바깥에 둔다.
