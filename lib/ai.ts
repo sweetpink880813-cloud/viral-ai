@@ -290,6 +290,8 @@ export async function routeTrendForAccount(
 - 계절과 무관하게 언제든 만들 수 있는 일반 생활 키워드, 상시 검색어, 평범한 사물·행동은 계정과 잘 맞더라도 opportunityScore를 40 이하로 평가하세요.
 - 키워드만 보고 현재 급상승한 구체적인 이유를 설명할 수 없다면 opportunityScore는 최대 50점입니다.
 - 계정 적합도와 opportunityScore를 분리해서 평가하세요. 계정에 잘 맞는다는 이유만으로 opportunityScore를 높이지 마세요.
+- keyword의 현재 급상승 이유를 구체적으로 설명할 수 없거나, 그 급상승 이유 자체가 계정 콘텐츠와 직접 연결되지 않으면 opportunityScore는 40 이하로 평가하세요.
+- 단순히 keyword를 계정 주제에 억지로 끼워 맞춘 콘텐츠 아이디어가 가능하다는 이유만으로 opportunityScore를 50 이상 주지 마세요.
 
 반드시 JSON만 반환하세요.
 
