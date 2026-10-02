@@ -246,6 +246,7 @@ console.log(
     rank: item.rank,
     rankScore: item.rankScore,
     fitScore: item.fitScore,
+    opportunityScore: item.opportunityScore,
     naverRatio: item.naverRatio,
     viralScore: item.viralScore,
   }))
