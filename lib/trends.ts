@@ -107,16 +107,14 @@ export async function getLatestTrends(): Promise<TrendItem[]> {
   try {
     const sourceItems = await fetchTrendSource();
 
-    const liveItems = uniqueKeywords(
-      sourceItems
-        .map((item) => cleanKeyword(item.keyword))
-        .filter(Boolean)
-        .map((keyword) => ({
-          keyword,
-          source: "google-trends" as const,
-          fetchedAt: new Date().toISOString(),
-        }))
-    ).slice(0, 50);
+   const liveItems = uniqueKeywords(
+  sourceItems
+    .map((item) => ({
+      ...item,
+      keyword: cleanKeyword(item.keyword),
+    }))
+    .filter((item) => Boolean(item.keyword))
+).slice(0, 50);
 
     if (liveItems.length > 0) {
       return liveItems;
