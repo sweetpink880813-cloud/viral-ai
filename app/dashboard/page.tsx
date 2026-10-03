@@ -23,9 +23,12 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false });
 
   const contents = (data ?? []) as SavedContent[];
-  type TrendDetail = {
+ type TrendDetail = {
   keyword: string;
   rank?: number;
+  previousRank?: number | null;
+  rankChange?: number | null;
+  movement?: "NEW" | "UP" | "DOWN" | "SAME";
   fitScore: number;
   opportunityScore: number;
   viralScore: number;
@@ -121,6 +124,29 @@ if (trendResponse.ok) {
               <h3 className="text-2xl font-bold">
                 {trend.keyword}
               </h3>
+              {trend.movement && (
+  <div className="mt-2">
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${
+        trend.movement === "UP"
+          ? "bg-emerald-400/15 text-emerald-300"
+          : trend.movement === "DOWN"
+            ? "bg-red-400/15 text-red-300"
+            : trend.movement === "NEW"
+              ? "bg-violet-400/15 text-violet-300"
+              : "bg-neutral-800 text-neutral-400"
+      }`}
+    >
+      {trend.movement === "UP"
+        ? `↑ ${trend.rankChange ?? 0} 급상승`
+        : trend.movement === "DOWN"
+          ? `↓ ${trend.rankChange ?? 0} 하락`
+          : trend.movement === "NEW"
+            ? "NEW"
+            : "→ 순위 유지"}
+    </span>
+  </div>
+)}
             </div>
 
             <div className="rounded-2xl bg-lime-300 px-3 py-2 text-center text-black">

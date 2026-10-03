@@ -262,9 +262,12 @@ console.log(
       account,
       category,
       topics: relevantTrends.map((item) => item.keyword),
-      trendDetails: relevantTrends.map((item) => ({
+     trendDetails: relevantTrends.map((item) => ({
   keyword: item.keyword,
   rank: item.rank,
+  previousRank: item.previousRank,
+  rankChange: item.rankChange,
+  movement: item.movement,
   fitScore: item.fitScore,
   opportunityScore: item.opportunityScore,
   viralScore: item.viralScore,

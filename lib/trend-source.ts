@@ -1,5 +1,6 @@
 import "server-only";
 import { BigQuery } from "@google-cloud/bigquery";
+import { getSupabaseAdmin } from "./supabase";
 
 export type TrendSourceItem = {
   keyword: string;
@@ -96,7 +97,32 @@ export async function fetchTrendSource(): Promise<TrendSourceItem[]> {
   }))
   .filter((item) => Boolean(item.keyword));
 
-    if (items.length > 0) {
+   if (items.length > 0) {
+      try {
+        const supabase = getSupabaseAdmin();
+
+        const snapshots = items.map((item) => ({
+          keyword: item.keyword,
+          rank: item.rank ?? 0,
+          source: item.source,
+          captured_at: fetchedAt,
+        }));
+
+        const { error: snapshotError } = await supabase
+          .from("trend_snapshots")
+          .insert(snapshots);
+
+        if (snapshotError) {
+          console.error("[USIA TREND] snapshot save failed:", snapshotError);
+        } else {
+          console.log(
+            `[USIA TREND] saved ${snapshots.length} trend snapshots`
+          );
+        }
+      } catch (snapshotError) {
+        console.error("[USIA TREND] snapshot save failed:", snapshotError);
+      }
+
       trendCache = items;
       trendCacheTime = now;
     }

@@ -1,4 +1,5 @@
 import { fetchTrendSource } from "@/lib/trend-source";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import "server-only";
 
 export type TrendItem = {
@@ -6,6 +7,9 @@ export type TrendItem = {
   rank?: number;
   source: "google-trends" | "fallback";
   fetchedAt: string;
+  previousRank?: number | null;
+  rankChange?: number | null;
+  movement?: "NEW" | "UP" | "DOWN" | "SAME";
 };
 
 export type TrendAccount =
@@ -117,8 +121,83 @@ export async function getLatestTrends(): Promise<TrendItem[]> {
 ).slice(0, 50);
 
     if (liveItems.length > 0) {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: snapshots, error: snapshotError } = await supabase
+      .from("trend_snapshots")
+      .select("id, keyword, rank, captured_at")
+      .order("captured_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(200);
+
+    if (snapshotError) {
+      console.error(
+        "[USIA TREND] movement fetch failed:",
+        snapshotError
+      );
       return liveItems;
     }
+
+    const history = new Map<
+      string,
+      { rank: number; capturedAt: string }[]
+    >();
+
+    for (const row of snapshots ?? []) {
+      const key = cleanKeyword(String(row.keyword ?? "")).toLowerCase();
+      if (!key) continue;
+
+      const rows = history.get(key) ?? [];
+
+      const capturedAt = String(row.captured_at ?? "");
+      const rank = Number(row.rank ?? 0);
+
+      // 같은 수집 시점의 중복 행은 하나로 취급
+      if (!rows.some((entry) => entry.capturedAt === capturedAt)) {
+        rows.push({ rank, capturedAt });
+      }
+
+      history.set(key, rows);
+    }
+
+    const enrichedItems: TrendItem[] = liveItems.map((item) => {
+      const key = item.keyword.toLowerCase();
+      const rows = history.get(key) ?? [];
+
+      const currentRank = item.rank;
+      const previousRank = rows[1]?.rank ?? null;
+
+      if (previousRank === null || currentRank == null) {
+        return {
+          ...item,
+          previousRank,
+          rankChange: null,
+          movement: "NEW" as const,
+        };
+      }
+
+      const rankChange = previousRank - currentRank;
+
+      return {
+        ...item,
+        previousRank,
+        rankChange: Math.abs(rankChange),
+        movement:
+          rankChange > 0
+            ? ("UP" as const)
+            : rankChange < 0
+              ? ("DOWN" as const)
+              : ("SAME" as const),
+      };
+    });
+
+    return enrichedItems;
+  } catch (error) {
+    console.error("[USIA TREND] movement enrichment failed:", error);
+    return liveItems;
+  }
+}
   } catch (error) {
     console.error("Trend fetch failed:", error);
   }
